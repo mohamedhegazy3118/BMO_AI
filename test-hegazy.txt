@@ -1,0 +1,7 @@
+# Test File by Hegazy
+This is a test push to verify the Git workflow is working correctly.
+
+Date: December 31, 2025
+Branch: test-hegazytest1
+
+🎉 Success! If you see this on GitHub, the push worked!
