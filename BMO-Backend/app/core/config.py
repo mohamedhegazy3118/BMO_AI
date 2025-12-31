@@ -38,12 +38,12 @@ class Settings(BaseSettings):
     cors_origins: List[str] = ["http://localhost:3000", "https://localhost:3000"]
 
     openrouter_api_key: str
-    openrouter_model: str = "google/gemini-2.0-flash-exp:free"
+    openrouter_model: str = "google/gemini-2.0-flash-lite-001"
     openrouter_models: List[str] = [
-        "google/gemini-2.0-flash-exp:free",
-        "meta-llama/llama-3.3-70b-instruct:free",
-        "qwen/qwen-2.5-72b-instruct:free",
-        "mistralai/mistral-nemo:free",
+        "google/gemini-2.0-flash-lite-001",
+        "google/gemini-flash-1.5-8b",
+        "deepseek/deepseek-chat-v3-0324:free",
+        "meta-llama/llama-4-scout:free",
     ]
     openrouter_temperature: float = 0.2
 
