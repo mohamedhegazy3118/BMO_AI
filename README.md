@@ -20,6 +20,9 @@ npm install
 npm run dev
 ```
 
+
+
+
 Open `http://localhost:3000` to interact with BMO’s interface. Tap the Wake button or any quick command to see the simulated backend flow (mock STT ➜ reasoning ➜ TTS ➜ navigation).
 
 > The UI uses Framer Motion for morphing animations and Lucide icons. For production deployments, use `npm run build && npm run start` inside `bmo-ui`..
