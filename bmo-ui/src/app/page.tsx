@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { Building2, Cpu, Stethoscope, Wrench, Mic, PauseCircle, Send } from "lucide-react";
+import { Building2, Cpu, Stethoscope, Wrench, Mic, PauseCircle, Send, Radio } from "lucide-react";
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 
 import BmoFace from "@/components/bmo-face";
@@ -140,12 +140,32 @@ export default function Home() {
   const fallbackSpeechRef = useRef<SpeechSynthesisUtterance | null>(null);
   const [interimTranscript, setInterimTranscript] = useState("");
   const [isOnline, setIsOnline] = useState(true);
+  const [wakeWordEnabled, setWakeWordEnabled] = useState(false);
+  const [isWakeListening, setIsWakeListening] = useState(false);
+
+  const wakeRecognitionRef = useRef<SpeechRecognition | null>(null);
 
   const cancelFallbackSpeech = useCallback(() => {
     if (typeof window === "undefined") return;
     if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     fallbackSpeechRef.current = null;
+  }, []);
+
+  // Wake phrase patterns (case-insensitive)
+  const WAKE_PHRASES = ["hey bmo", "hey beemo", "ok bmo", "hi bmo", "hello bmo"];
+
+  const extractCommandAfterWake = useCallback((transcript: string): string | null => {
+    const lower = transcript.toLowerCase().trim();
+    for (const phrase of WAKE_PHRASES) {
+      const index = lower.indexOf(phrase);
+      if (index !== -1) {
+        const afterWake = transcript.slice(index + phrase.length).trim();
+        // Remove leading punctuation/spaces
+        return afterWake.replace(/^[,\s]+/, "").trim() || null;
+      }
+    }
+    return null;
   }, []);
 
   const speakFallback = useCallback(
@@ -429,6 +449,100 @@ export default function Home() {
     [textInput, mode, ensureSession, processTranscript]
   );
 
+  // Wake word listener - runs continuously in background
+  const stopWakeWordListener = useCallback(() => {
+    if (wakeRecognitionRef.current) {
+      try {
+        wakeRecognitionRef.current.abort();
+      } catch {
+        // ignore
+      }
+      wakeRecognitionRef.current = null;
+    }
+    setIsWakeListening(false);
+  }, []);
+
+  const startWakeWordListener = useCallback(() => {
+    const RecognitionCtor = getSpeechRecognitionConstructor();
+    if (!RecognitionCtor || !wakeWordEnabled) return;
+
+    // Don't start if already recording or processing
+    if (isRecording || mode === "PROCESSING" || mode === "SPEAKING") return;
+
+    stopWakeWordListener();
+
+    const recognition = new RecognitionCtor();
+    recognition.lang = "en-US";
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+
+    recognition.onresult = async (event) => {
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        const transcript = result[0]?.transcript || "";
+
+        if (result.isFinal) {
+          const command = extractCommandAfterWake(transcript);
+          if (command !== null) {
+            // Wake word detected!
+            stopWakeWordListener();
+            setLastTranscript(command || "Hey BMO");
+
+            if (command) {
+              // Has command after wake word - process it
+              const id = await ensureSession();
+              await processTranscript(id, command);
+            } else {
+              // Just wake word - enter listening mode
+              startRecognition();
+            }
+            return;
+          }
+        }
+      }
+    };
+
+    recognition.onerror = () => {
+      // Silently restart on error if still enabled
+      if (wakeWordEnabled && !isRecording) {
+        setTimeout(() => startWakeWordListener(), 1000);
+      }
+    };
+
+    recognition.onend = () => {
+      wakeRecognitionRef.current = null;
+      setIsWakeListening(false);
+      // Auto-restart if still enabled and not doing something else
+      if (wakeWordEnabled && !isRecording && mode !== "PROCESSING" && mode !== "SPEAKING") {
+        setTimeout(() => startWakeWordListener(), 500);
+      }
+    };
+
+    wakeRecognitionRef.current = recognition;
+    setIsWakeListening(true);
+
+    try {
+      recognition.start();
+    } catch {
+      setIsWakeListening(false);
+    }
+  }, [wakeWordEnabled, isRecording, mode, stopWakeWordListener, extractCommandAfterWake, ensureSession, processTranscript, startRecognition]);
+
+  // Effect to manage wake word listener
+  useEffect(() => {
+    if (wakeWordEnabled && !isRecording && mode !== "PROCESSING" && mode !== "SPEAKING") {
+      startWakeWordListener();
+    } else {
+      stopWakeWordListener();
+    }
+    return () => stopWakeWordListener();
+  }, [wakeWordEnabled, isRecording, mode, startWakeWordListener, stopWakeWordListener]);
+
+  const toggleWakeWord = useCallback(() => {
+    setWakeWordEnabled((prev) => !prev);
+  }, []);
+
   const handleWake = useCallback(async () => {
     await createSession();
   }, [createSession]);
@@ -522,10 +636,10 @@ export default function Home() {
               onClick={handleMicToggle}
               disabled={micDisabled}
               className={`group flex items-center justify-center gap-3 rounded-3xl border border-white/10 py-4 text-lg font-semibold transition ${isRecording
-                  ? "bg-rose-500/20 text-rose-100"
-                  : micDisabled
-                    ? "bg-white/5 text-white/70 cursor-not-allowed"
-                    : "bg-white/5 text-white hover:bg-white/10"
+                ? "bg-rose-500/20 text-rose-100"
+                : micDisabled
+                  ? "bg-white/5 text-white/70 cursor-not-allowed"
+                  : "bg-white/5 text-white hover:bg-white/10"
                 }`}
             >
               {isRecording ? <PauseCircle className="text-rose-200" /> : <Mic className="text-teal-200" />}
@@ -552,6 +666,24 @@ export default function Home() {
                 <Send size={20} />
               </button>
             </form>
+            <button
+              onClick={toggleWakeWord}
+              disabled={!speechSupported || !secureContext || !isOnline}
+              className={`flex items-center justify-center gap-3 rounded-2xl border py-3 px-4 text-sm font-medium transition ${wakeWordEnabled
+                  ? "border-emerald-400/50 bg-emerald-500/20 text-emerald-200"
+                  : "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"
+                } disabled:cursor-not-allowed disabled:opacity-50`}
+            >
+              <Radio size={18} className={wakeWordEnabled ? "text-emerald-300" : "text-slate-400"} />
+              {wakeWordEnabled ? (
+                <>
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
+                  Listening for "Hey BMO"...
+                </>
+              ) : (
+                "Enable Wake Word"
+              )}
+            </button>
             {clientReady && !speechSupported && (
               <p className="text-xs text-amber-200">
                 Use the desktop version of Chrome/Edge to enable the Web Speech API.
@@ -649,8 +781,8 @@ export default function Home() {
                       <span
                         key={step}
                         className={`rounded-full px-4 py-2 ${mode === step.toUpperCase()
-                            ? "bg-emerald-300/20 text-white"
-                            : "bg-white/5 text-slate-400"
+                          ? "bg-emerald-300/20 text-white"
+                          : "bg-white/5 text-slate-400"
                           }`}
                       >
                         {step}
