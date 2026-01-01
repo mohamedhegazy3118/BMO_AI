@@ -1,0 +1,92 @@
+# =========================
+# BMO AI .gitignore
+# =========================
+
+# ----- Environment & Secrets -----
+.env
+.env.local
+.env.*.local
+*.local
+
+# ----- Python -----
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+.eggs/
+*.egg-info/
+*.egg
+dist/
+build/
+*.manifest
+*.spec
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ----- Node.js / Next.js -----
+node_modules/
+.next/
+out/
+.nuxt/
+dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ----- IDE & Editors -----
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# ----- OS Generated -----
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ----- Testing & Coverage -----
+.coverage
+htmlcov/
+.tox/
+.nox/
+.pytest_cache/
+coverage/
+*.lcov
+
+# ----- Logs -----
+logs/
+*.log
+npm-debug.log*
+
+# ----- Temp & Build Files -----
+*.tmp
+*.temp
+*.bak
+*.cache
+.cache/
+
+# ----- Audio/Media Test Files -----
+*.mp3
+*.wav
+*.ogg
+
+# ----- Certificates (keep sample, ignore real ones) -----
+certificates/*.pem
+certificates/*.key
+certificates/*.crt
+!certificates/.gitkeep
