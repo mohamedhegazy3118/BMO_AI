@@ -105,7 +105,7 @@ export default function Home() {
                 const assistantMsg: Message = {
                     id: (Date.now() + 1).toString(),
                     role: "assistant",
-                    content: res.reply || res.caption || "I'm here to help!",
+                    content: res.narration || "I'm here to help!",
                 };
                 setMessages((prev) => [...prev, assistantMsg]);
 
@@ -315,8 +315,8 @@ export default function Home() {
                                         {/* Message Bubble */}
                                         <div
                                             className={`max-w-[85%] px-6 py-4 shadow-md text-base leading-relaxed ${msg.role === "user"
-                                                    ? "bg-[var(--accent)] text-[var(--bg)] rounded-[2rem] rounded-tr-sm"
-                                                    : "bg-[var(--bg-chat)] text-[var(--text)] rounded-[2rem] rounded-tl-sm border border-[var(--border)]"
+                                                ? "bg-[var(--accent)] text-[var(--bg)] rounded-[2rem] rounded-tr-sm"
+                                                : "bg-[var(--bg-chat)] text-[var(--text)] rounded-[2rem] rounded-tl-sm border border-[var(--border)]"
                                                 }`}
                                         >
                                             <p className="whitespace-pre-wrap">{msg.content}</p>
