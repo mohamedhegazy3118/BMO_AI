@@ -190,10 +190,19 @@ class ConversationService:
             directions = [str(item).strip() for item in provided_steps if isinstance(item, str) and item.strip()]
         else:
             directions = []
-        if not directions:
+        
+        # Only generate fallback directions if the LLM indicated navigation 
+        # (target_building is not "General" AND direction_guide has real content)
+        has_navigation_intent = (
+            target_building.lower() != "general" and 
+            direction_guide.lower() not in ["use the central library as your anchor.", "general", ""]
+        )
+        
+        if not directions and has_navigation_intent:
             directions = self._fan_out_directions(direction_guide, zone_color)
 
-        mode = "NAVIGATING" if directions and target_building.lower() != "general" else "SPEAKING"
+        # Only set NAVIGATING mode if there was clear navigation intent from the LLM
+        mode = "NAVIGATING" if has_navigation_intent and directions else "SPEAKING"
 
         emotion = str(parsed.get("emotion") or "neutral").lower()
         emotion = emotion if emotion in ALLOWED_EMOTIONS else "neutral"
